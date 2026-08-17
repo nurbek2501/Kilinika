@@ -6,48 +6,64 @@ import { logger } from './config/logger';
 async function seed() {
   logger.info('Seeding database...');
 
-  const directorExists = await prisma.user.findUnique({ where: { phone: env.DIRECTOR_PHONE } });
-  if (!directorExists) {
-    await prisma.user.create({
-      data: {
-        name: env.DIRECTOR_NAME,
-        phone: env.DIRECTOR_PHONE,
-        password: await hashPassword(env.DIRECTOR_PASSWORD),
-        role: 'DIRECTOR',
-      },
-    });
-    logger.info('Director account created');
-  }
+  // Director
+  await prisma.user.upsert({
+    where: { phone: env.DIRECTOR_PHONE },
+    update: {
+      name: env.DIRECTOR_NAME,
+      password: await hashPassword(env.DIRECTOR_PASSWORD),
+      role: 'DIRECTOR',
+    },
+    create: {
+      name: env.DIRECTOR_NAME,
+      phone: env.DIRECTOR_PHONE,
+      password: await hashPassword(env.DIRECTOR_PASSWORD),
+      role: 'DIRECTOR',
+    },
+  });
+  logger.info('Director account ensured');
 
-  const doctorExists = await prisma.user.findUnique({ where: { phone: env.DOCTOR1_PHONE } });
-  if (!doctorExists) {
-    await prisma.user.create({
-      data: {
-        name: env.DOCTOR1_NAME,
-        phone: env.DOCTOR1_PHONE,
-        username: env.DOCTOR1_PHONE,
-        specialty: 'Stomatolog-terapevt',
-        password: await hashPassword(env.DOCTOR1_PASSWORD),
-        role: 'DOCTOR',
-      },
-    });
-    logger.info('Doctor account created');
-  }
+  // Doctor
+  await prisma.user.upsert({
+    where: { phone: env.DOCTOR1_PHONE },
+    update: {
+      name: env.DOCTOR1_NAME,
+      username: env.DOCTOR1_PHONE,
+      specialty: 'Stomatolog-terapevt',
+      password: await hashPassword(env.DOCTOR1_PASSWORD),
+      role: 'DOCTOR',
+    },
+    create: {
+      name: env.DOCTOR1_NAME,
+      phone: env.DOCTOR1_PHONE,
+      username: env.DOCTOR1_PHONE,
+      specialty: 'Stomatolog-terapevt',
+      password: await hashPassword(env.DOCTOR1_PASSWORD),
+      role: 'DOCTOR',
+    },
+  });
+  logger.info('Doctor account ensured');
 
-  const adminExists = await prisma.user.findUnique({ where: { phone: env.ADMIN_PHONE } });
-  if (!adminExists) {
-    await prisma.user.create({
-      data: {
-        name: env.ADMIN_NAME,
-        phone: env.ADMIN_PHONE,
-        username: env.ADMIN_PHONE,
-        password: await hashPassword(env.ADMIN_PASSWORD),
-        role: 'ADMIN',
-      },
-    });
-    logger.info('Admin account created');
-  }
+  // Admin
+  await prisma.user.upsert({
+    where: { phone: env.ADMIN_PHONE },
+    update: {
+      name: env.ADMIN_NAME,
+      username: env.ADMIN_PHONE,
+      password: await hashPassword(env.ADMIN_PASSWORD),
+      role: 'ADMIN',
+    },
+    create: {
+      name: env.ADMIN_NAME,
+      phone: env.ADMIN_PHONE,
+      username: env.ADMIN_PHONE,
+      password: await hashPassword(env.ADMIN_PASSWORD),
+      role: 'ADMIN',
+    },
+  });
+  logger.info('Admin account ensured');
 
+  // Services
   const serviceCount = await prisma.servicePrice.count();
   if (serviceCount === 0) {
     await prisma.servicePrice.createMany({
@@ -67,7 +83,7 @@ async function seed() {
     logger.info('Default services created');
   }
 
-  // Default clinic settings (key-value)
+  // Settings
   const defaultSettings: Record<string, string> = {
     clinicName: 'Kamoliddin Dental Clinic',
     clinicPhone: '+998 90 123 45 67',
