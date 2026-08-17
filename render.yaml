@@ -26,8 +26,10 @@ services:
     rootDir: backend
     plan: free            # Free web services sleep when idle (bot pauses too). Use Starter for always-on.
     healthCheckPath: /api/health
-    # Generate Prisma client, sync the schema, seed defaults (idempotent), then compile.
-    buildCommand: npm install && npx prisma generate && npx prisma db push && npm run seed && npm run build
+    # --include=dev forces devDependencies (tsc, tsx, prisma, @types) to install even
+    # though NODE_ENV=production (npm would otherwise skip them and the build would fail).
+    # Then: generate Prisma client, sync schema, seed defaults (idempotent), compile.
+    buildCommand: npm install --include=dev && npx prisma generate && npx prisma db push && npm run seed && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
@@ -85,7 +87,8 @@ services:
     runtime: node
     rootDir: frontend
     plan: free
-    buildCommand: npm install && npm run build
+    # --include=dev ensures Next's build tools (typescript, tailwind, @types) are present.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
