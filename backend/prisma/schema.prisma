@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DIRECTOR
+  ADMIN
+  DOCTOR
+  PATIENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum PaymentType {
+  CASH
+  CLICK
+  DEBT
+}
+
+enum BookingSource {
+  WEB
+  TELEGRAM
+}
+
+enum AppointmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  UTILITY
+  PREPAYMENT
+}
+
+enum UtilityCategory {
+  ELECTRICITY
+  WATER_GAS
+  INTERNET
+  RENT
+  OTHER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  username  String?  @unique
+  specialty String?
+  password  String
+  role      Role
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments   Appointment[]   @relation("DoctorAppointments")
+  patientRecords PatientRecord[] @relation("DoctorRecords")
+  transactions   Transaction[]
+}
+
+model PatientRecord {
+  id               String      @id @default(uuid())
+  fullName         String
+  birthDate        DateTime
+  gender           Gender
+  phone            String
+  address          String?
+  occupation       String?
+  diagnosis        String
+  dailyAnalysis    String?
+  treatmentHistory String?
+  treatmentPlan    String?
+  paymentType      PaymentType
+  consentImage     String?
+  doctorId         String
+  doctor           User        @relation("DoctorRecords", fields: [doctorId], references: [id])
+  visitDate        DateTime    @default(now())
+  amount           Decimal     @default(0)
+  createdAt        DateTime    @default(now())
+
+  debts        Debt[]
+  transactions Transaction[]
+}
+
+model Appointment {
+  id           String            @id @default(uuid())
+  patientName  String
+  patientPhone String
+  doctorId     String
+  doctor       User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  source       BookingSource
+  status       AppointmentStatus @default(PENDING)
+  serviceType  String?
+  scheduledAt  DateTime?
+  notes        String?
+  createdAt    DateTime          @default(now())
+}
+
+model Transaction {
+  id              String           @id @default(uuid())
+  patientRecordId String?
+  patientRecord   PatientRecord?   @relation(fields: [patientRecordId], references: [id])
+  userId          String?
+  user            User?            @relation(fields: [userId], references: [id])
+  type            TransactionType
+  amount          Decimal
+  category        UtilityCategory?
+  description     String?
+  createdAt       DateTime         @default(now())
+}
+
+model Debt {
+  id              String        @id @default(uuid())
+  patientRecordId String
+  patientRecord   PatientRecord @relation(fields: [patientRecordId], references: [id])
+  patientName     String
+  patientPhone    String
+  doctorId        String
+  amount          Decimal
+  deadline        DateTime
+  isPaid          Boolean       @default(false)
+  paidAt          DateTime?
+  reminderSent    Boolean       @default(false)
+  lastReminderAt  DateTime?
+  autoSmsEnabled  Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+}
+
+model PrepaidBalance {
+  id           String   @id @default(uuid())
+  patientName  String
+  patientPhone String
+  doctorId     String
+  balance      Decimal  @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ServicePrice {
+  id       String  @id @default(uuid())
+  nameUz   String
+  nameRu   String
+  nameEn   String
+  price    Decimal
+  isActive Boolean @default(true)
+}
+
+// Clinic shareholders / owners ("Mulkdorlar"): ownership share + capital balance
+model Owner {
+  id             String   @id @default(uuid())
+  name           String
+  title          String? // e.g. Chief Medical Officer, Strategic Partner, Investor
+  phone          String?
+  ownershipPct   Decimal  @default(0) // percentage of clinic ownership
+  capitalBalance Decimal  @default(0) // current equity / capital balance
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// Key-value clinic settings: budget, commission rate, clinic info, sms toggle, ...
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

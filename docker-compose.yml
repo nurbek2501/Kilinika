@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dental
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/dental
+      NODE_ENV: production
+      PORT: 3001
+      TZ: Asia/Tashkent
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+    depends_on:
+      - backend
+
+  # The Telegram bot now runs INSIDE the backend service (src/services/telegramBot.ts).
+  # It reads TELEGRAM_BOT_TOKEN from backend/.env and stays off if the token is unset.
+  # A separate telegram-bot service would run a second poller and cause 409 conflicts.
+
+volumes:
+  pgdata:
